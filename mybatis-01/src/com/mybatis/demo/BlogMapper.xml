@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mybatis.demo.BlogMapper">
+	<cache></cache>
+	<resultMap type="Blog" id="blogResultMap">
+		<id column="id" property="id" jdbcType="INTEGER" />
+		<result column="author_id" property="authorId" />
+	</resultMap>
+	<!-- sql片段 -->
+	<sql id="columnBase">
+	`id`, `title`, `author_Id` as authorId, `state`, `featured`,
+		`style`
+	</sql>
+	<!-- crud曾删改查 -->
+	<!-- statement -->
+	<select id="selectBlog2" parameterType="int" resultType="Blog"><!-- type:参数值；Map：键值对参数， 
+			resultType返回值 -->
+		select 
+		<include refid="columnBase"></include>
+		 from Blog where id = #{id}
+	</select>
+	<!-- <insert id=""></insert> <update id=""></update> <delete id=""></delete> -->
+	<select id="selectBlog" parameterType="int" resultType="Blog"
+		resultMap="blogResultMap"><!-- type:参数值；Map：键值对参数， resultType返回值 -->
+		select * from blog where id = #{id}
+	</select>
+	<!-- -->
+	<select id="selectBlogByTitle" parameterType="string" resultMap="blogResultMap">
+		select * from blog where title like #{title}<!-- -->
+	</select>
+	<select id="selectBlogByTitle2" parameterType="string"
+		resultMap="blogResultMap">
+		select * from blog where title like '%${value}%'<!-- 使用$传递参数可以将%放在sql语句中去，传递的如果为字符串使用过引号 -->
+	</select>
+	<!-- 排序 -->
+	<select id="selectBlogBySort" parameterType="string" resultMap="blogResultMap">
+		select * from blog order by convert(${value} using gbk)<!-- -->
+		<!-- select * from blog order by ${value} -->
+	</select>
+	<!-- 分页-索引 -->
+	<select id="selectBlogByPage" resultMap="blogResultMap">
+		select * from blog limit
+		#{0},#{1}
+	</select>
+	<!-- 分页-注解 -->
+	<select id="selectBlogByPage2" resultMap="blogResultMap">
+		select * from blog
+		limit #{offset},#{pagesize}
+	</select>
+
+	<!-- 分页-注解 -->
+	<select id="selectBlogByPage3" resultMap="blogResultMap">
+		select * from blog
+		limit #{offset},#{pagesize}
+	</select>
+
+	<insert id="insertBlog" parameterType="Blog" useGeneratedKeys="true"
+		keyProperty="id">
+		INSERT INTO `blog` ( `title`, `author_Id`, `state`,
+		`featured`, `style`)
+		VALUES ( #{title}, #{authorId}, #{state},
+		#{featured}, #{style})
+
+	</insert>
+
+	<insert id="insertBlogOracle" parameterType="Blog">
+		<selectKey resultType="java.lang.Integer" order="BEFORE"
+			keyProperty="id">
+			select seq.nextval as id from dual<!-- oracle使用序列 -->
+		</selectKey>
+		INSERT INTO `blog` ( `title`, `author_Id`, `state`, `featured`,
+		`style`)
+		VALUES ( #{title}, #{authorId}, #{state}, #{featured},
+		#{style})
+
+	</insert>
+	<insert id="insertBlogMysql" parameterType="Blog">
+		<selectKey resultType="java.lang.Integer" order="AFTER"
+			keyProperty="id">
+			select LAST_INSERT_ID()<!-- mysql使用序列 -->
+		</selectKey>
+		INSERT INTO `blog` ( `title`, `author_Id`, `state`, `featured`,
+		`style`)
+		VALUES ( #{title}, #{authorId}, #{state}, #{featured},
+		#{style})
+
+	</insert>
+
+	<update id="updateBlog" parameterType="Blog">
+		UPDATE `blog`
+		SET
+		`title` =
+		#{title},
+		`author_Id` = #{authorId},
+		`state` = #{state},
+		`featured` =
+		#{featured},
+		`style` = #{style}
+		WHERE
+		(`id` = '6');
+	</update>
+	<delete id="deleteBlogById" parameterType="int">
+		delete from blog where
+		id = #{id}
+	</delete>
+
+	<!-- 动态sql -->
+	<select id="selectActiveBlogByTitle" parameterType="string"
+		resultMap="blogResultMap">
+		SELECT * FROM blog
+		WHERE featured=0
+		<if test="value!=null and value !=''">
+			AND title like '%${value}%'
+		</if>
+	</select>
+	<select id="selectActiveBlogByTitleOrStyle" parameterType="Blog"
+		resultMap="blogResultMap">
+		SELECT * FROM blog
+		WHERE state='ACTIVE'
+		<choose>
+			<when test="title!=null and title!=''">
+				and lower(title) like lower(#{title})
+			</when>
+			<when test="style!= null and style !=''">
+				and style = #{style}
+			</when>
+			<otherwise>
+				and featured = 0
+			</otherwise>
+		</choose>
+	</select>
+	<select id="selectBlogByCondition" parameterType="Blog"
+		resultMap="blogResultMap">
+		SELECT * FROM blog
+		<where>
+			<if test="state!=null and state!=''">
+				and state=#{state}
+			</if>
+			<if test="title!=null and title!=''">
+				and lower(title) like lower(#{title})
+			</if>
+			<if test="featured!=null">
+				and featured=#{featured}
+			</if>
+		</where>
+	</select>
+	<update id="updateBlogByCondition" parameterType="Blog">
+		UPDATE `blog`
+		<set>
+		<if test="title!=null">
+			`title` =
+			#{title},
+		</if>
+		<if test="authorId!=null">`author_Id` = #{authorId},</if>
+		<if test="state!=null">`state` = #{state},</if>
+		<if test="featured!=null">`featured` =
+			#{featured},
+		</if>
+		<if test="style!=null">`style` = #{style}</if>
+		</set>
+		WHERE
+		(`id` = #{id});
+	</update>
+	<select id="selectBlogByConditionTrim" parameterType="Blog"
+		resultMap="blogResultMap">
+		SELECT * FROM blog
+		<trim prefix="where" prefixOverrides="and | or">
+			<if test="state!=null and state!=''">
+				and state=#{state}
+			</if>
+			<if test="title!=null and title!=''">
+				and lower(title) like lower(#{title})
+			</if>
+			<if test="featured!=null">
+				and featured=#{featured}
+			</if>
+		</trim>
+	</select>
+	<update id="updateBlogByConditionTrim" parameterType="Blog">
+		UPDATE `blog`
+		<trim prefix="set" suffixOverrides=",">
+		<if test="title!=null">
+			`title` =
+			#{title},
+		</if>
+		<if test="authorId!=null">`author_Id` = #{authorId},</if>
+		<if test="state!=null">`state` = #{state},</if>
+		<if test="featured!=null">`featured` =
+			#{featured},
+		</if>
+		<if test="style!=null">`style` = #{style}</if>
+		</trim>
+		WHERE
+		(`id` = #{id});
+	</update>
+	<delete id="deleteBlogList">
+	delete from blog where id in 
+	<foreach collection="list" item="item" open="(" close=")" separator=",">
+	#{item}
+	</foreach>
+	</delete>
+</mapper>
